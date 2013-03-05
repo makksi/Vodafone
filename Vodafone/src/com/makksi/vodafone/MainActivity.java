@@ -1,3 +1,4 @@
+// cleaning
 package com.makksi.vodafone;
 
 import java.io.BufferedReader;
@@ -10,7 +11,6 @@ import java.net.URL;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -59,47 +59,59 @@ public class MainActivity extends Activity {
 	};
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+		super.onCreate(savedInstanceState);		
 		//		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 		//		StrictMode.setThreadPolicy(policy); 
 		setContentView(R.layout.activity_main);
 		Button button1 = (Button) findViewById(R.id.button1);	
+		Button button2 = (Button) findViewById(R.id.button2);			
 		preferences = PreferenceManager.getDefaultSharedPreferences(this);
 		username = preferences.getString("username", "n/a");
 		password = preferences.getString("password", "n/a");		
 		httpreq.start();
 		button1.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-//				username = preferences.getString("username", "n/a");
-//				password = preferences.getString("password", "n/a");
 				showPrefs(username, password);
 			}	
 		});	
+		button2.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {			
+			}	
+		});			
+	}
+/*	@Override
+		protected void onStart() {
+		super.onStart();
+		setContentView(R.layout.activity_main);
+		preferences = PreferenceManager.getDefaultSharedPreferences(this);
+		username = preferences.getString("username", "n/a");
+		password = preferences.getString("password", "n/a");		
+		httpreq.start();
+	}	
+*/	 
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		MenuInflater menuInflater = getMenuInflater();
+		menuInflater.inflate(R.layout.menu, menu);
+		return true;
 	}
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
-        MenuInflater menuInflater = getMenuInflater();
-        menuInflater.inflate(R.layout.menu, menu);
-        return true;
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item)
-    {
-        switch (item.getItemId())
-        {
-        case R.id.menu_settings:
-            Intent intent = new Intent (this,SettingsActivity.class);
-            this.startActivity(intent);
-            break;
-         default:
-            return super.onOptionsItemSelected(item);
-        }
-        return true;
-    }        
-	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		switch (item.getItemId())
+		{
+		case R.id.menu_settings:
+			Intent intent = new Intent (this,SettingsActivity.class);
+			this.startActivity(intent);
+			break;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+		return true;
+	}        
+
 
 	private void showPrefs(String username, String password){
 		Toast.makeText(MainActivity.this,"User: "+username+" password: "+password, Toast.LENGTH_LONG).show();
@@ -190,7 +202,7 @@ public class MainActivity extends Activity {
 				e.printStackTrace();
 			} 		
 		}
-	};	
+	};		
 }	
 
 
