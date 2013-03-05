@@ -22,6 +22,13 @@ public class SettingsActivity extends Activity {
 		setContentView(R.layout.activity_settings);
 		preferences = PreferenceManager.getDefaultSharedPreferences(this);		
 		Button button = (Button) findViewById(R.id.buttonOk);
+		String username = preferences.getString("username", "n/a");
+		String password = preferences.getString("password", "n/a");	
+		EditText userEdit = (EditText) findViewById(R.id.editTextUser);
+		EditText passEdit = (EditText) findViewById(R.id.editTextPass);		
+		userEdit.setText(username);
+		passEdit.setText(password);
+		
 		button.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				EditText userEdit = (EditText) findViewById(R.id.editTextUser);
@@ -38,8 +45,7 @@ public class SettingsActivity extends Activity {
 		edit.putString("username", user);
 		edit.putString("password", pass);
 		edit.commit();
-		String username = preferences.getString("username", "n/a");
-		String password = preferences.getString("password", "n/a");
+
 	} 		
 
 }	
