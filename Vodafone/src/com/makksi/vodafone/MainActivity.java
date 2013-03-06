@@ -1,4 +1,3 @@
-// cleaning
 package com.makksi.vodafone;
 
 import java.io.BufferedReader;
@@ -11,10 +10,9 @@ import java.net.URL;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
-import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -37,10 +35,10 @@ public class MainActivity extends Activity {
 	String username="";
 	String password="";
 	// Si occupa di aggiornare il thread principale ossia la UI quando viene invocato ad esempio in un thread secondario	
-	Handler handler = new Handler() {
-		@Override
-		public void handleMessage(Message msg) {
-			//			setContentView(R.layout.activity_main);
+	private final Handler handler = new Handler();
+	final Runnable updateUI = new Runnable() {
+		public void run() {
+			//call the activity method that updates the UI
 			TextView text = (TextView) findViewById(R.id.textCredit);  
 			text.setText(Scredit);
 			text = (TextView) findViewById(R.id.text200PlusUsed);
@@ -56,7 +54,8 @@ public class MainActivity extends Activity {
 			text = (TextView) findViewById(R.id.textInternet1AnnoTo);
 			text.setText(SInternet1AnnoTo);	 
 		}
-	};
+	};	
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);		
@@ -66,29 +65,28 @@ public class MainActivity extends Activity {
 		Button button1 = (Button) findViewById(R.id.button1);	
 		Button button2 = (Button) findViewById(R.id.button2);			
 		preferences = PreferenceManager.getDefaultSharedPreferences(this);
-		username = preferences.getString("username", "n/a");
-		password = preferences.getString("password", "n/a");		
-		httpreq.start();
 		button1.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				showPrefs(username, password);
 			}	
-		});	
+		});			 	
 		button2.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {			
-			}	
+			public void onClick(View v) {
+			}
 		});			
 	}
-/*	@Override
-		protected void onStart() {
+
+	// run update UI at startup and  also if username and password changed in Settings.Activity
+	public void onStart(){
 		super.onStart();
-		setContentView(R.layout.activity_main);
-		preferences = PreferenceManager.getDefaultSharedPreferences(this);
-		username = preferences.getString("username", "n/a");
-		password = preferences.getString("password", "n/a");		
-		httpreq.start();
-	}	
-*/	 
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				httpreq();			
+			}
+		}).start();	
+	}
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
@@ -111,7 +109,6 @@ public class MainActivity extends Activity {
 		}
 		return true;
 	}        
-
 
 	private void showPrefs(String username, String password){
 		Toast.makeText(MainActivity.this,"User: "+username+" password: "+password, Toast.LENGTH_LONG).show();
@@ -172,11 +169,13 @@ public class MainActivity extends Activity {
 		return slineTemp;
 	};		
 
-	private Thread httpreq = new Thread(){
-		// thread secondario; serve per fare in modo da non lockare il thread principale ossia la UI in operazioni particolarmente lunghe		
-		public void run(){
+	private class httpreq1 extends AsyncTask<Void, Void, Void> {
+
+		protected Void doInBackground(Void... params) {
 			URL url;
 			HttpURLConnection con;
+			username = preferences.getString("username", "n/a");
+			password = preferences.getString("password", "n/a");	
 			try{
 				url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=i_credito&msisdn=3483734228");
 				con = (HttpURLConnection) url.openConnection();
@@ -197,12 +196,49 @@ public class MainActivity extends Activity {
 				SInternet1AnnoFrom=readStream1 (con.getInputStream(),"Dal <span class=\"red\">","</span> al <span class");
 				con = (HttpURLConnection) url.openConnection();						
 				SInternet1AnnoTo=readStream1 (con.getInputStream(),"</span> al <span class=\"red\">","</span>");						
-				handler.sendEmptyMessage(0);				
+				handler.sendEmptyMessage(0);
 			}catch(Exception e){
 				e.printStackTrace();
-			} 		
+			} 				
+			return null;
+		}	
+		protected void onProgressUpdate(Integer... progress) {
 		}
-	};		
+		protected void onPostExecute(Long result) {
+		}
+	}	
+	// retrieve data from web and send updateUI runnable to UI handler to update UI.
+	public void httpreq(){
+		URL url;
+		HttpURLConnection con;
+		username = preferences.getString("username", "n/a");
+		password = preferences.getString("password", "n/a");	
+		try{
+			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=i_credito&msisdn=3483734228");
+			con = (HttpURLConnection) url.openConnection();
+			Scredit=readStream1 (con.getInputStream(),"big red\">","&nbsp");
+			//---------------200Plus--------------------				
+			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1221_2&msisdn=3483734228");
+			con = (HttpURLConnection) url.openConnection();
+			S200PlusUsed=readStream1 (con.getInputStream(),"Utilizzati <span class=\"red\">"," MIN");
+			con = (HttpURLConnection) url.openConnection();						
+			S200PlusFrom=readStream1 (con.getInputStream(),"Dal <span class=\"red\">","</span> al <span class");				
+			con = (HttpURLConnection) url.openConnection();							
+			S200PlusTo=readStream1 (con.getInputStream(),"</span> al <span class=\"red\">","</span>");				
+			//---------------Internet 1 anno----------------------				
+			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1256_2&msisdn=3483734228");
+			con = (HttpURLConnection) url.openConnection();
+			SInternet1AnnoUsed=readStream1 (con.getInputStream(),"Utilizzati <span class=\"red\">"," MB");
+			con = (HttpURLConnection) url.openConnection();						
+			SInternet1AnnoFrom=readStream1 (con.getInputStream(),"Dal <span class=\"red\">","</span> al <span class");
+			con = (HttpURLConnection) url.openConnection();						
+			SInternet1AnnoTo=readStream1 (con.getInputStream(),"</span> al <span class=\"red\">","</span>");						
+			handler.post(updateUI);				
+		}catch(Exception e){
+			e.printStackTrace();
+		} 		
+	}	
+
 }	
 
 
