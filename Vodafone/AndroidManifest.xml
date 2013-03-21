@@ -23,11 +23,11 @@
             </intent-filter>
         </activity>
         <activity 
-            android:name="MyPreferencesActivity">
-        </activity>  
-        <activity 
             android:name="SettingsActivity">
-        </activity>          
+        </activity>       
+        <activity 
+            android:name="ServiceActivity">
+        </activity>              
     </application>
 
 </manifest>

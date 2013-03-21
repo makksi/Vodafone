@@ -6,6 +6,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -14,6 +17,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -34,6 +38,9 @@ public class MainActivity extends Activity {
 	String SInternet1AnnoTo="";
 	String username="";
 	String password="";
+	String phone="";
+	List<List<String>> SwidgetList;
+
 	// Si occupa di aggiornare il thread principale ossia la UI quando viene invocato ad esempio in un thread secondario	
 	private final Handler handler = new Handler();
 	final Runnable updateUI = new Runnable() {
@@ -52,31 +59,31 @@ public class MainActivity extends Activity {
 			text = (TextView) findViewById(R.id.textInternet1AnnoFrom);
 			text.setText(SInternet1AnnoFrom);
 			text = (TextView) findViewById(R.id.textInternet1AnnoTo);
-			text.setText(SInternet1AnnoTo);	 
+			text.setText(SInternet1AnnoTo);
+			text = (TextView) findViewById(R.id.textView1);
+			text.setMovementMethod(new ScrollingMovementMethod());
+			int ssize = preferences.getInt("service_size",0);
+			for(int i=0;i<ssize;i++){
+				for(int j=0;j<=3;j++){
+					String service = preferences.getString("service"+"_"+i+"_"+j, "n/a");
+					text.append(service+"\n");
+			}
 		}
-	};	
+	}		
+			
+
+		};	
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);		
 		//		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 		//		StrictMode.setThreadPolicy(policy); 
-		setContentView(R.layout.activity_main);
-		Button button1 = (Button) findViewById(R.id.button1);	
-		Button button2 = (Button) findViewById(R.id.button2);			
-		preferences = PreferenceManager.getDefaultSharedPreferences(this);
-		button1.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				showPrefs(username, password);
-			}	
-		});			 	
-		button2.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-			}
-		});			
+		setContentView(R.layout.activity_main);	
+		preferences = PreferenceManager.getDefaultSharedPreferences(this);		
 	}
 
-	// run update UI at startup and  also if username and password changed in Settings.Activity
+	// run update UI at startup and  also if username,password,phone changed in Settings.Activity
 	public void onStart(){
 		super.onStart();
 		new Thread(new Runnable() {
@@ -101,30 +108,45 @@ public class MainActivity extends Activity {
 		switch (item.getItemId())
 		{
 		case R.id.menu_settings:
-			Intent intent = new Intent (this,SettingsActivity.class);
-			this.startActivity(intent);
+			Intent intentSettings = new Intent (this,SettingsActivity.class);
+			this.startActivity(intentSettings);
 			break;
+		case R.id.menu_services:
+			Intent intentService = new Intent (this,ServiceActivity.class);
+			this.startActivity(intentService);
+			break;			
 		default:
 			return super.onOptionsItemSelected(item);
 		}
 		return true;
-	}        
+	}        	
 
-	private void showPrefs(String username, String password){
-		Toast.makeText(MainActivity.this,"User: "+username+" password: "+password, Toast.LENGTH_LONG).show();
-	}	
-
-	private String readStream(InputStream in, String word, int start, int end) {
+	public List<List<String>> readStream2(InputStream in) {
 		BufferedReader reader = null;
 		String line= "";
-		int stCr = -1;
+		String[] sstrings;
+		List<String> lstrings = new ArrayList<String>();
+		List<List<String>> plans = new ArrayList<List<String>>();
 		try{
 			reader = new BufferedReader(new InputStreamReader(in));
 			while ((line = reader.readLine()) != null) {
-				stCr = line.indexOf(word);
-				if (stCr != -1) {
-					break;
-				}	
+				line=line.replace("{\"code\":0,\"result\":[", "");
+				line=line.replace("]}", "");	
+				line=line.replace("\"", "");
+				line=line.replace(",{", "");
+				line=line.replace("}", ";");
+				line=line.replace("id:", "");
+				line=line.replace("type:", "");
+				line=line.replace("title:", "");
+				line=line.replaceAll("[\\]\\{\\[]", "");
+				sstrings=line.split(";");
+				for(int i=0;i<sstrings.length;i++){
+					String[] tstrings=sstrings[i].split(",");
+					for(int j=0;j<tstrings.length;j++){
+						lstrings.add(tstrings[j]);
+					}
+					plans.add(lstrings);	
+				}
 			}
 		}catch(IOException e){
 			e.printStackTrace();
@@ -137,8 +159,8 @@ public class MainActivity extends Activity {
 				}
 			}
 		}
-		return line.substring(stCr+start, stCr+end);
-	};	
+		return plans;
+	};		
 
 	private String readStream1(InputStream in, String startString, String stopString) {
 		BufferedReader reader = null;
@@ -172,31 +194,7 @@ public class MainActivity extends Activity {
 	private class httpreq1 extends AsyncTask<Void, Void, Void> {
 
 		protected Void doInBackground(Void... params) {
-			URL url;
-			HttpURLConnection con;
-			username = preferences.getString("username", "n/a");
-			password = preferences.getString("password", "n/a");	
 			try{
-				url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=i_credito&msisdn=3483734228");
-				con = (HttpURLConnection) url.openConnection();
-				Scredit=readStream1 (con.getInputStream(),"big red\">","&nbsp");
-				//---------------200Plus--------------------				
-				url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1221_2&msisdn=3483734228");
-				con = (HttpURLConnection) url.openConnection();
-				S200PlusUsed=readStream1 (con.getInputStream(),"Utilizzati <span class=\"red\">"," MIN");
-				con = (HttpURLConnection) url.openConnection();						
-				S200PlusFrom=readStream1 (con.getInputStream(),"Dal <span class=\"red\">","</span> al <span class");				
-				con = (HttpURLConnection) url.openConnection();							
-				S200PlusTo=readStream1 (con.getInputStream(),"</span> al <span class=\"red\">","</span>");				
-				//---------------Internet 1 anno----------------------				
-				url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1256_2&msisdn=3483734228");
-				con = (HttpURLConnection) url.openConnection();
-				SInternet1AnnoUsed=readStream1 (con.getInputStream(),"Utilizzati <span class=\"red\">"," MB");
-				con = (HttpURLConnection) url.openConnection();						
-				SInternet1AnnoFrom=readStream1 (con.getInputStream(),"Dal <span class=\"red\">","</span> al <span class");
-				con = (HttpURLConnection) url.openConnection();						
-				SInternet1AnnoTo=readStream1 (con.getInputStream(),"</span> al <span class=\"red\">","</span>");						
-				handler.sendEmptyMessage(0);
 			}catch(Exception e){
 				e.printStackTrace();
 			} 				
@@ -213,12 +211,18 @@ public class MainActivity extends Activity {
 		HttpURLConnection con;
 		username = preferences.getString("username", "n/a");
 		password = preferences.getString("password", "n/a");	
+		phone = preferences.getString("phone", "n/a");
 		try{
-			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=i_credito&msisdn=3483734228");
+			//---------------Widget List--------------------				
+			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/ws_widget_list.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1221_2&msisdn="+phone);
+			con = (HttpURLConnection) url.openConnection();
+			SwidgetList=readStream2 (con.getInputStream());		
+			//---------------Credit--------------------				
+			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=i_credito&msisdn="+phone);
 			con = (HttpURLConnection) url.openConnection();
 			Scredit=readStream1 (con.getInputStream(),"big red\">","&nbsp");
 			//---------------200Plus--------------------				
-			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1221_2&msisdn=3483734228");
+			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1221_2&msisdn="+phone);
 			con = (HttpURLConnection) url.openConnection();
 			S200PlusUsed=readStream1 (con.getInputStream(),"Utilizzati <span class=\"red\">"," MIN");
 			con = (HttpURLConnection) url.openConnection();						
@@ -226,7 +230,7 @@ public class MainActivity extends Activity {
 			con = (HttpURLConnection) url.openConnection();							
 			S200PlusTo=readStream1 (con.getInputStream(),"</span> al <span class=\"red\">","</span>");				
 			//---------------Internet 1 anno----------------------				
-			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1256_2&msisdn=3483734228");
+			url = new URL ("https://my190.vodafone.it/190mobile/endpoint/Android/wv_widget.php?installation_id=5309921AB593664EF5B066471A0991C0&bundle=3.2.1&user="+username+"&pass="+password+"&id=c_P_1256_2&msisdn="+phone);
 			con = (HttpURLConnection) url.openConnection();
 			SInternet1AnnoUsed=readStream1 (con.getInputStream(),"Utilizzati <span class=\"red\">"," MB");
 			con = (HttpURLConnection) url.openConnection();						
@@ -238,10 +242,7 @@ public class MainActivity extends Activity {
 			e.printStackTrace();
 		} 		
 	}	
-
-}	
-
-
+}
 
 /*---------------------------------------------------------------------------------
 				Toast toast2=Toast.makeText(this,"Start while",Toast.LENGTH_LONG);
