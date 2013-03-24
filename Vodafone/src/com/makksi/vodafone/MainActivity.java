@@ -20,6 +20,7 @@ import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
@@ -236,7 +237,22 @@ public class MainActivity extends Activity {
 		}catch(Exception e){
 			e.printStackTrace();
 		} 		
-	}	
+	}
+
+/*	TENTATIVO DI FARE IL GRID LAYOUT DA PROGRAMMA...ancor non so proprio come fare
+	private void setLayout (GridLayout layout, int row){
+		
+		TextView textView = new TextView(this);
+		textView.setText("PRIMO");
+		textView.setGravity(Gravity.CENTER);
+		
+		GridLayout.LayoutParams lllp=(GridLayout.LayoutParams)textView.getLayoutParams();
+		
+		GridLayout.LayoutParams params = new GridLayout.LayoutParams(GridLayout.spec(row),GridLayout.spec(col));
+
+	}
+	*/
+	
 }
 
 /*---------------------------------------------------------------------------------
